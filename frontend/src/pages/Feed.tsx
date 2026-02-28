@@ -1,6 +1,6 @@
 import { useRef, useCallback, useState } from 'react';
-import { RefreshCw, Bell, Flame } from 'lucide-react';
-import { useFeed, useNotifications, useMarkRead, useMorningStats } from '../hooks/useSocial';
+import { RefreshCw, Bell } from 'lucide-react';
+import { useFeed, useNotifications, useMarkRead } from '../hooks/useSocial';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { PostCard } from '../components/social/PostCard';
 import { Spinner } from '../components/ui/Spinner';
@@ -9,65 +9,6 @@ import type { FeedPost, Notification, WsMessage } from '../types/whoop';
 import clsx from 'clsx';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
-
-// ── Morning Stats Banner ──────────────────────────────────────────────────
-
-function MorningBanner() {
-  const { data } = useMorningStats();
-  if (!data || data.recovery == null) return null;
-
-  const score = Math.round(data.recovery);
-  // Use style prop instead of dynamic Tailwind classes (prevents purge)
-  const ringColor =
-    score >= 67 ? '#22c55e' :
-    score >= 34 ? '#eab308' : '#ef4444';
-  const bgColor =
-    score >= 67 ? 'rgba(34,197,94,0.08)' :
-    score >= 34 ? 'rgba(234,179,8,0.08)' : 'rgba(239,68,68,0.08)';
-
-  const streakCount = Math.max(data.streak_recovery, data.streak_sleep);
-
-  return (
-    <div
-      className="rounded-2xl p-4 flex items-center gap-4 border"
-      style={{ background: bgColor, borderColor: `${ringColor}30` }}
-    >
-      {/* Recovery circle */}
-      <div
-        className="h-16 w-16 rounded-full flex-shrink-0 flex flex-col items-center justify-center border-2"
-        style={{ borderColor: ringColor }}
-      >
-        <span className="text-xl font-black text-white leading-none">{score}</span>
-        <span className="text-[9px] text-slate-400 uppercase tracking-wide leading-none mt-0.5">recov.</span>
-      </div>
-
-      {/* Stats */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-white">Ton matin</p>
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-          {data.hrv != null && (
-            <span className="text-xs text-slate-400">
-              HRV <span className="text-white font-semibold">{Math.round(data.hrv)} ms</span>
-            </span>
-          )}
-          {data.sleep_perf != null && (
-            <span className="text-xs text-slate-400">
-              Sommeil <span className="text-white font-semibold">{Math.round(data.sleep_perf)}%</span>
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Streak */}
-      {streakCount > 2 && (
-        <div className="flex flex-col items-center flex-shrink-0">
-          <Flame className="h-5 w-5 text-yellow-400" />
-          <span className="text-xs font-bold text-yellow-400 leading-tight">{streakCount}j</span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Notification Tray ─────────────────────────────────────────────────────
 
@@ -205,9 +146,6 @@ export function FeedPage() {
           </div>
         </div>
       </div>
-
-      {/* Morning banner */}
-      <MorningBanner />
 
       {/* Nudge toast */}
       {nudge && (
