@@ -143,14 +143,15 @@ export interface Badge {
 
 export interface Notification {
   id: number;
-  actor_id: number;
+  actor_id?: number;
   notif_type: 'new_follower' | 'new_reaction' | 'new_comment' | 'new_mention' | 'nudge' | 'streak_warning' | 'badge_earned';
   target_id?: string;
-  extra_json?: string;
+  extra_json?: { reaction_type?: string; snippet?: string; [key: string]: unknown } | null;
   read: number;
   created_at: string;
   first_name?: string;
   last_name?: string;
+  avatar_url?: string;
 }
 
 export interface LeaderboardEntry {

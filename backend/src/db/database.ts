@@ -817,12 +817,23 @@ export function createNotification(data: {
 
 export function getNotifications(userId: number, limit = 30): any[] {
   return (getDb().prepare(`
-    SELECT n.*, u.first_name as from_first, u.last_name as from_last, u.username as from_username
+    SELECT
+      n.id,
+      n.type          AS notif_type,
+      n.from_user_id  AS actor_id,
+      n.reference_id  AS target_id,
+      n.payload       AS extra_json,
+      n.read,
+      n.created_at,
+      u.first_name,
+      u.last_name,
+      u.avatar_url
     FROM notifications n
     LEFT JOIN users u ON u.id = n.from_user_id
     WHERE n.user_id=? ORDER BY n.created_at DESC LIMIT ?
   `).all(userId, limit) as any[]).map(n => ({
-    ...n, payload: n.payload ? JSON.parse(n.payload) : null,
+    ...n,
+    extra_json: n.extra_json ? JSON.parse(n.extra_json) : null,
   }));
 }
 
