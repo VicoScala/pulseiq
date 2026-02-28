@@ -143,7 +143,7 @@ export interface Badge {
 export interface Notification {
   id: number;
   actor_id: number;
-  notif_type: 'new_follower' | 'new_reaction' | 'new_comment' | 'nudge' | 'streak_warning' | 'badge_earned';
+  notif_type: 'new_follower' | 'new_reaction' | 'new_comment' | 'new_mention' | 'nudge' | 'streak_warning' | 'badge_earned';
   target_id?: string;
   extra_json?: string;
   read: number;

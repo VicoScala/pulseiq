@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Bell, Heart, MessageCircle, UserPlus, Zap } from 'lucide-react';
+import { AtSign, Bell, Heart, MessageCircle, UserPlus, Zap } from 'lucide-react';
 
 export interface ToastNotif {
   id: string;
@@ -15,10 +15,11 @@ interface ContainerProps {
 
 function notifIcon(type: string) {
   switch (type) {
-    case 'new_reaction': return <Heart className="h-4 w-4 text-brand-red" />;
-    case 'new_comment':  return <MessageCircle className="h-4 w-4 text-brand-blue" />;
-    case 'new_follower': return <UserPlus className="h-4 w-4 text-brand-green" />;
-    case 'nudge':        return <Zap className="h-4 w-4 text-brand-yellow" />;
+    case 'new_reaction': return <Heart className="h-4 w-4 text-red-400" />;
+    case 'new_comment':  return <MessageCircle className="h-4 w-4 text-blue-400" />;
+    case 'new_follower': return <UserPlus className="h-4 w-4 text-green-400" />;
+    case 'new_mention':  return <AtSign className="h-4 w-4 text-purple-400" />;
+    case 'nudge':        return <Zap className="h-4 w-4 text-yellow-400" />;
     default:             return <Bell className="h-4 w-4 text-slate-400" />;
   }
 }
@@ -28,6 +29,7 @@ function notifText(type: string): string {
     case 'new_reaction': return 'a réagi à votre publication';
     case 'new_comment':  return 'a commenté votre publication';
     case 'new_follower': return 'vous suit maintenant';
+    case 'new_mention':  return 'vous a mentionné dans un commentaire';
     case 'nudge':        return 'vous a envoyé un coup de coude';
     default:             return 'vous a notifié';
   }

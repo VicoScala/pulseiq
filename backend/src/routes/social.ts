@@ -117,9 +117,9 @@ router.post('/posts/:id/react', (req: AuthRequest, res: Response) => {
   const postId = parseInt(req.params.id);
   upsertReaction(postId, req.userId!, reaction_type);
 
-  // Notify post owner
+  // Notify post owner (always, even on own posts)
   const post = getDb().prepare('SELECT user_id FROM feed_posts WHERE id=?').get(postId) as any;
-  if (post && post.user_id !== req.userId) {
+  if (post) {
     notifyUser(post.user_id, 'new_reaction', req.userId!, String(postId), { reaction_type });
   }
 
@@ -147,10 +147,24 @@ router.post('/posts/:id/comment', (req: AuthRequest, res: Response) => {
   const postId  = parseInt(req.params.id);
   const comment = addComment(postId, req.userId!, content.trim(), parent_comment_id);
 
-  // Notify post owner
+  // Notify post owner (always, even on own posts)
   const post = getDb().prepare('SELECT user_id FROM feed_posts WHERE id=?').get(postId) as any;
-  if (post && post.user_id !== req.userId) {
+  if (post) {
     notifyUser(post.user_id, 'new_comment', req.userId!, String(postId));
+  }
+
+  // Notify @mentioned users
+  const mentionRegex = /@([A-Za-zÀ-ÿ]+(?:\s+[A-Za-zÀ-ÿ]+)?)/g;
+  const db = getDb();
+  for (const match of [...content.matchAll(mentionRegex)]) {
+    const parts = match[1].trim().split(/\s+/);
+    const [first, last] = parts;
+    const mentioned = last
+      ? db.prepare('SELECT id FROM users WHERE LOWER(first_name)=LOWER(?) AND LOWER(last_name)=LOWER(?)').get(first, last)
+      : db.prepare('SELECT id FROM users WHERE LOWER(first_name)=LOWER(?)').get(first);
+    if (mentioned && (mentioned as any).id !== req.userId) {
+      notifyUser((mentioned as any).id, 'new_mention', req.userId!, String(postId), { snippet: content.slice(0, 100) });
+    }
   }
 
   res.json({ comment });

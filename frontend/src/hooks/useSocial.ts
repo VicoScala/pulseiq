@@ -10,6 +10,17 @@ const STALE = 30_000; // 30s for social data
 export const useMyProfile = () =>
   useQuery({ queryKey: ['social', 'profile', 'me'], queryFn: socialApi.getMyProfile, staleTime: STALE });
 
+export const useUpdateAvatar = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => socialApi.uploadAvatar(file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['social', 'profile', 'me'] });
+      qc.invalidateQueries({ queryKey: ['social', 'feed'] });
+    },
+  });
+};
+
 export const useProfile = (userId: number) =>
   useQuery({
     queryKey: ['social', 'profile', userId],

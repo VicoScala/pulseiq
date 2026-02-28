@@ -310,6 +310,19 @@ const MIGRATIONS: Migration[] = [
       console.log('[db] Migration 4: distance/altitude columns added to workouts');
     },
   },
+  {
+    // Add avatar_url to users for profile photo uploads
+    version: 5,
+    run(db) {
+      const cols = (t: string) =>
+        (db.prepare(`PRAGMA table_info(${t})`).all() as { name: string }[]).map(c => c.name);
+      const addCol = (t: string, col: string, def: string) => {
+        if (!cols(t).includes(col)) db.exec(`ALTER TABLE ${t} ADD COLUMN ${col} ${def}`);
+      };
+      addCol('users', 'avatar_url', 'TEXT');
+      console.log('[db] Migration 5: avatar_url column added to users');
+    },
+  },
 ];
 
 function migrate(db: Database.Database): void {
@@ -554,7 +567,7 @@ export function getWorkouts(userId: number, days: number): any[] {
 }
 
 // ── Social: Profile ────────────────────────────────────────────────────────
-export function updateProfile(userId: number, data: { username?: string; bio?: string }): { ok: boolean; error?: string } {
+export function updateProfile(userId: number, data: { username?: string; bio?: string; avatar_url?: string }): { ok: boolean; error?: string } {
   const db = getDb();
   if (data.username) {
     const taken = db.prepare('SELECT id FROM users WHERE username=? AND id!=?').get(data.username, userId);
@@ -563,6 +576,9 @@ export function updateProfile(userId: number, data: { username?: string; bio?: s
   }
   if (data.bio !== undefined) {
     db.prepare('UPDATE users SET bio=? WHERE id=?').run(data.bio, userId);
+  }
+  if (data.avatar_url !== undefined) {
+    db.prepare('UPDATE users SET avatar_url=? WHERE id=?').run(data.avatar_url, userId);
   }
   return { ok: true };
 }
@@ -573,14 +589,14 @@ export function touchLastActive(userId: number): void {
 
 export function getUserPublic(userId: number): any {
   return getDb().prepare(
-    'SELECT id, first_name, last_name, username, bio, created_at FROM users WHERE id=?'
+    'SELECT id, first_name, last_name, username, bio, avatar_url, created_at FROM users WHERE id=?'
   ).get(userId);
 }
 
 export function searchUsers(query: string, excludeId: number): any[] {
   const q = `%${query}%`;
   return getDb().prepare(`
-    SELECT id, first_name, last_name, username, bio
+    SELECT id, first_name, last_name, username, bio, avatar_url
     FROM users
     WHERE id != ? AND (
       first_name LIKE ? OR last_name LIKE ? OR username LIKE ? OR email LIKE ?
@@ -593,7 +609,7 @@ export function getSuggestedUsers(userId: number): any[] {
   // Friends of friends not yet followed
   const db = getDb();
   return db.prepare(`
-    SELECT DISTINCT u.id, u.first_name, u.last_name, u.username, u.bio
+    SELECT DISTINCT u.id, u.first_name, u.last_name, u.username, u.bio, u.avatar_url
     FROM users u
     JOIN friendships f2 ON f2.following_id = u.id
     WHERE f2.follower_id IN (
@@ -663,7 +679,7 @@ export function getFeed(userId: number, cursor?: number, limit = 20): any[] {
   const rows = db.prepare(`
     SELECT p.*,
       p.generated_message AS content,
-      u.first_name, u.last_name, u.username,
+      u.first_name, u.last_name, u.username, u.avatar_url,
       (SELECT COUNT(*) FROM comments  c WHERE c.post_id = p.id) AS comment_count,
       (SELECT COUNT(*) FROM feed_posts rr WHERE rr.repost_of = p.id) AS repost_count,
       (SELECT reaction_type FROM reactions r WHERE r.post_id=p.id AND r.user_id=?) AS my_reaction,
@@ -714,7 +730,7 @@ export function getUserPosts(profileUserId: number, viewerId: number, cursor?: n
   const rows = db.prepare(`
     SELECT p.*,
       p.generated_message AS content,
-      u.first_name, u.last_name, u.username,
+      u.first_name, u.last_name, u.username, u.avatar_url,
       (SELECT COUNT(*) FROM comments  c WHERE c.post_id = p.id) AS comment_count,
       (SELECT COUNT(*) FROM feed_posts rr WHERE rr.repost_of = p.id) AS repost_count,
       (SELECT reaction_type FROM reactions r WHERE r.post_id=p.id AND r.user_id=?) AS my_reaction

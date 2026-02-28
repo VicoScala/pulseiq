@@ -14,6 +14,68 @@ interface Props {
   myUserId?: number;
 }
 
+// ── Color helpers ──────────────────────────────────────────────────────────
+
+const POST_BORDER_COLOR: Record<string, string> = {
+  activity:      '#22c55e',
+  sleep:         '#3b82f6',
+  streak:        '#a855f7',
+  pb:            '#eab308',
+  personal_best: '#eab308',
+  repost:        '#475569',
+};
+
+function getStrainColor(s: number): string {
+  if (s >= 17) return '#ef4444';
+  if (s >= 14) return '#eab308';
+  if (s >= 10) return '#22c55e';
+  return '#3b82f6';
+}
+
+function getRecoveryColor(score: number): string {
+  if (score >= 67) return '#22c55e';
+  if (score >= 34) return '#eab308';
+  return '#ef4444';
+}
+
+// ── Sport emoji ────────────────────────────────────────────────────────────
+
+const SPORT_EMOJI: Record<string, string> = {
+  'running':              '🏃',
+  'cycling':              '🚴',
+  'swimming':             '🏊',
+  'weightlifting':        '🏋️',
+  'powerlifting':         '🏋️',
+  'functional fitness':   '💪',
+  'hiit':                 '⚡',
+  'hiking/rucking':       '🥾',
+  'walking':              '🚶',
+  'soccer':               '⚽',
+  'basketball':           '🏀',
+  'tennis':               '🎾',
+  'yoga':                 '🧘',
+  'pilates':              '🤸',
+  'boxing':               '🥊',
+  'kickboxing':           '🥊',
+  'jiu jitsu':            '🥋',
+  'martial arts':         '🥋',
+  'rowing':               '🚣',
+  'golf':                 '⛳',
+  'skiing':               '⛷️',
+  'snowboarding':         '🏂',
+  'rock climbing':        '🧗',
+  'climber':              '🧗',
+  'mountain biking':      '🚵',
+  'kayaking':             '🛶',
+  'surfing':              '🏄',
+  'volleyball':           '🏐',
+  'dance':                '💃',
+  'spin':                 '🚴',
+  'cross country skiing': '⛷️',
+  'triathlon':            '🏊',
+  'pickleball':           '🏓',
+};
+
 const POST_TYPE_ICON: Record<string, string> = {
   sleep:  '🌙',
   streak: '🏆',
@@ -21,46 +83,12 @@ const POST_TYPE_ICON: Record<string, string> = {
   repost: '🔁',
 };
 
-const SPORT_EMOJI: Record<string, string> = {
-  'running':            '🏃',
-  'cycling':            '🚴',
-  'swimming':           '🏊',
-  'weightlifting':      '🏋️',
-  'powerlifting':       '🏋️',
-  'functional fitness': '💪',
-  'hiit':               '⚡',
-  'hiking/rucking':     '🥾',
-  'walking':            '🚶',
-  'soccer':             '⚽',
-  'basketball':         '🏀',
-  'tennis':             '🎾',
-  'yoga':               '🧘',
-  'pilates':            '🤸',
-  'boxing':             '🥊',
-  'kickboxing':         '🥊',
-  'jiu jitsu':          '🥋',
-  'martial arts':       '🥋',
-  'rowing':             '🚣',
-  'golf':               '⛳',
-  'skiing':             '⛷️',
-  'snowboarding':       '🏂',
-  'rock climbing':      '🧗',
-  'climber':            '🧗',
-  'mountain biking':    '🚵',
-  'kayaking':           '🛶',
-  'surfing':            '🏄',
-  'volleyball':         '🏐',
-  'dance':              '💃',
-  'spin':               '🚴',
-  'cross country skiing': '⛷️',
-  'triathlon':          '🏊',
-  'pickleball':         '🏓',
-};
-
 function getActivityEmoji(sportName?: string): string {
   if (!sportName) return '🏅';
   return SPORT_EMOJI[sportName.toLowerCase()] ?? '🏅';
 }
+
+// ── PostCard ───────────────────────────────────────────────────────────────
 
 export function PostCard({ post, myUserId }: Props) {
   const navigate     = useNavigate();
@@ -68,14 +96,23 @@ export function PostCard({ post, myUserId }: Props) {
   const repost       = useRepost();
   const initials     = `${post.first_name?.[0] ?? ''}${post.last_name?.[0] ?? ''}`.toUpperCase();
   const isMyPost     = myUserId === post.user_id;
+  const borderColor  = POST_BORDER_COLOR[post.post_type] ?? '#475569';
 
   const handleRepost = (e: React.MouseEvent) => {
     e.stopPropagation();
     repost.mutate(post.id);
   };
 
+  const sportName     = post.whoop_data?.sport_name;
+  const strain        = post.whoop_data?.strain;
+  const distanceKm    = post.whoop_data?.distance_km;
+  const recoveryScore = post.whoop_data?.recovery_score;
+
   return (
-    <div className="bg-surface-1 border border-white/5 rounded-2xl p-4 space-y-3 hover:border-white/10 transition-colors">
+    <div
+      className="bg-surface-1 border-y border-r border-white/5 border-l-4 rounded-2xl p-4 space-y-3 hover:bg-white/[0.02] hover:border-white/10 transition-all"
+      style={{ borderLeftColor: borderColor }}
+    >
       {/* Repost header */}
       {post.post_type === 'repost' && post.original_first_name && (
         <div className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -89,11 +126,11 @@ export function PostCard({ post, myUserId }: Props) {
       {/* Author row */}
       <div className="flex items-start gap-3">
         <div
-          className="h-9 w-9 rounded-full bg-brand-blue/30 border border-brand-blue/20 flex items-center justify-center text-xs font-bold text-brand-blue flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          className="h-9 w-9 rounded-full bg-brand-blue/30 border border-brand-blue/20 flex items-center justify-center text-xs font-bold text-brand-blue flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden"
           onClick={() => navigate(`/profile/${post.user_id}`)}
         >
           {post.avatar_url
-            ? <img src={post.avatar_url} alt={initials} className="h-full w-full rounded-full object-cover" />
+            ? <img src={post.avatar_url} alt={initials} className="h-full w-full object-cover" />
             : initials}
         </div>
 
@@ -108,9 +145,15 @@ export function PostCard({ post, myUserId }: Props) {
               </span>
               <span className="text-base flex-shrink-0">
                 {post.post_type === 'activity'
-                  ? getActivityEmoji(post.whoop_data?.sport_name)
+                  ? getActivityEmoji(sportName)
                   : POST_TYPE_ICON[post.post_type] ?? '📊'}
               </span>
+              {/* Sport name badge for activity posts */}
+              {post.post_type === 'activity' && sportName && (
+                <span className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-brand-green/10 border border-brand-green/20 text-brand-green capitalize flex-shrink-0">
+                  {sportName}
+                </span>
+              )}
             </div>
             <span className="text-xs text-slate-500 flex-shrink-0">
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: fr })}
@@ -124,15 +167,52 @@ export function PostCard({ post, myUserId }: Props) {
               : post.content}
           </p>
 
-          {/* Metric pill */}
-          {post.metric_value != null && post.metric_label && (
+          {/* Metric pill (streak, pb — not activity/sleep which have their own visual) */}
+          {post.metric_value != null && post.metric_label
+            && post.post_type !== 'activity' && post.post_type !== 'sleep' && (
             <div className="mt-2 inline-flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-2.5 py-1 text-xs">
               <span className="text-slate-400">{post.metric_label}</span>
               <span className="font-semibold text-white">{post.metric_value}</span>
             </div>
           )}
         </div>
+
+        {/* Recovery circle for sleep posts */}
+        {post.post_type === 'sleep' && recoveryScore != null && (
+          <div
+            className="h-14 w-14 rounded-full flex-shrink-0 flex flex-col items-center justify-center border-2 ml-1"
+            style={{ borderColor: getRecoveryColor(recoveryScore) }}
+          >
+            <span className="text-lg font-black text-white leading-none">{Math.round(recoveryScore)}</span>
+            <span className="text-[9px] text-slate-400 leading-none mt-0.5">%</span>
+          </div>
+        )}
       </div>
+
+      {/* Activity metrics strip */}
+      {post.post_type === 'activity' && (strain != null || (distanceKm != null && distanceKm > 0.1)) && (
+        <div className="flex items-center gap-5 px-3 py-2.5 bg-white/[0.03] rounded-xl border border-white/5">
+          {strain != null && (
+            <div className="flex flex-col items-center min-w-[2.5rem]">
+              <span
+                className="text-2xl font-black leading-none"
+                style={{ color: getStrainColor(strain) }}
+              >
+                {strain.toFixed(1)}
+              </span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">Strain</span>
+            </div>
+          )}
+          {distanceKm != null && distanceKm > 0.1 && (
+            <div className="flex flex-col items-center min-w-[2.5rem]">
+              <span className="text-2xl font-black text-white leading-none">
+                {distanceKm.toFixed(1)}
+              </span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5">km</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center justify-between pt-1">

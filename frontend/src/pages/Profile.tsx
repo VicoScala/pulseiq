@@ -1,5 +1,7 @@
+import { useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { useMyProfile, useProfile, useFollow, useUnfollow, useNudge } from '../hooks/useSocial';
+import { Camera } from 'lucide-react';
+import { useMyProfile, useProfile, useFollow, useUnfollow, useNudge, useUpdateAvatar } from '../hooks/useSocial';
 import { PostCard } from '../components/social/PostCard';
 import { Spinner } from '../components/ui/Spinner';
 import { useAuth } from '../hooks/useAuth';
@@ -36,9 +38,11 @@ export function ProfilePage() {
   const otherQ   = useProfile(userId ? parseInt(userId) : 0);
   const profileQ = isMe ? myQ : otherQ;
 
-  const follow   = useFollow();
-  const unfollow = useUnfollow();
-  const nudge    = useNudge();
+  const follow       = useFollow();
+  const unfollow     = useUnfollow();
+  const nudge        = useNudge();
+  const updateAvatar = useUpdateAvatar();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (profileQ.isLoading) {
     return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
@@ -68,11 +72,41 @@ export function ProfilePage() {
         {/* Avatar + actions */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-brand-blue/30 border-2 border-brand-blue/40 flex items-center justify-center text-2xl font-bold text-brand-blue">
-              {user.avatar_url
-                ? <img src={user.avatar_url} alt={initials} className="h-full w-full rounded-full object-cover" />
-                : initials}
+            {/* Clickable avatar when viewing own profile */}
+            <div
+              className={clsx(
+                'relative h-16 w-16 rounded-full bg-brand-blue/30 border-2 border-brand-blue/40 flex items-center justify-center text-2xl font-bold text-brand-blue overflow-hidden',
+                isMe && 'cursor-pointer group',
+              )}
+              onClick={() => isMe && fileInputRef.current?.click()}
+            >
+              {updateAvatar.isPending ? (
+                <Spinner size="sm" />
+              ) : user.avatar_url ? (
+                <img src={user.avatar_url} alt={initials} className="h-full w-full rounded-full object-cover" />
+              ) : (
+                initials
+              )}
+              {isMe && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                  <Camera className="h-5 w-5 text-white" />
+                </div>
+              )}
             </div>
+            {/* Hidden file input */}
+            {isMe && (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) updateAvatar.mutate(file);
+                  e.target.value = '';
+                }}
+              />
+            )}
             <div>
               <h1 className="text-lg font-bold text-white">
                 {user.first_name} {user.last_name}

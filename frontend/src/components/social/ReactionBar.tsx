@@ -30,9 +30,9 @@ export function ReactionBar({ post }: Props) {
           key={type}
           onClick={() => handleReaction(type)}
           className={clsx(
-            'flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border transition-all',
+            'flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium border transition-all',
             post.my_reaction === type
-              ? 'bg-brand-green/20 text-brand-green border-brand-green/30'
+              ? 'bg-brand-green/20 text-brand-green border-brand-green/40 scale-105'
               : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white',
           )}
         >
@@ -45,7 +45,7 @@ export function ReactionBar({ post }: Props) {
 
       {/* Add reaction picker */}
       <div className="relative group">
-        <button className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-slate-500 border border-white/5 hover:bg-white/10 hover:text-white transition-all">
+        <button className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm text-slate-500 border border-white/10 hover:bg-white/10 hover:text-white transition-all">
           <span>+</span>
         </button>
         {/* Emoji picker on hover */}

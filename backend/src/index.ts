@@ -11,6 +11,7 @@ import authRouter    from './routes/auth';
 import apiRouter     from './routes/api';
 import socialRouter  from './routes/social';
 import webhookRouter from './routes/webhooks';
+import uploadRouter  from './routes/upload';
 import { syncAllUsers } from './services/sync';
 import { runNightlyStreakWarnings } from './services/social';
 import { createWss } from './services/ws';
@@ -38,6 +39,12 @@ app.use('/webhooks', express.raw({ type: 'application/json' }), webhookRouter);
 app.use(express.json());
 app.use(cookieParser());
 
+// ── Static uploads (user-uploaded files — served before SPA fallback) ─────
+// In prod, files are in the Railway persistent volume at /data/
+// In dev, files are at <repo>/data/ (created on first upload)
+const uploadsDir = isProd ? '/data' : path.resolve(__dirname, '../../data');
+app.use('/uploads', express.static(uploadsDir));
+
 // ── Static frontend (production only) ─────────────────────────────────────
 // Docker: __dirname=/app/dist → ../public = /app/public (copied from frontend/dist)
 if (isProd) {
@@ -48,6 +55,7 @@ if (isProd) {
 // ── API Routes ─────────────────────────────────────────────────────────────
 app.use('/auth',   authRouter);
 app.use('/api',    apiRouter);
+app.use('/api',    uploadRouter);
 app.use('/social', socialRouter);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));

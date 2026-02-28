@@ -38,6 +38,11 @@ export const socialApi = {
   getMyProfile:     ()                  => api.get('/social/profile/me').then(r => r.data),
   getProfile:       (userId: number)    => api.get(`/social/profile/${userId}`).then(r => r.data),
   updateProfile:    (data: { bio?: string; avatar_url?: string }) => api.patch('/social/profile', data).then(r => r.data),
+  uploadAvatar:     (file: File)        => {
+    const fd = new FormData();
+    fd.append('avatar', file);
+    return api.post('/api/avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
+  },
 
   // Follow
   follow:           (userId: number)    => api.post(`/social/follow/${userId}`).then(r => r.data),
