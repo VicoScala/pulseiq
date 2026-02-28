@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Moon, Dumbbell, Brain, RefreshCw, LogOut, ChevronRight,
   Rss, Compass, User,
@@ -21,9 +21,8 @@ const NAV_SOCIAL = [
 ];
 
 export function Sidebar() {
-  const { user, logout } = useAuth();
-  const sync             = useSync();
-  const navigate         = useNavigate();
+  const { logout } = useAuth();
+  const sync       = useSync();
   const { data: notifData } = useNotifications();
   const unread              = notifData?.unreadCount ?? 0;
 
@@ -57,24 +56,6 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-
-      {/* User */}
-      {user && (
-        <div className="px-4 py-4 border-b border-white/5">
-          <div
-            className="flex items-center gap-3 px-2 py-2 rounded-xl bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
-            onClick={() => navigate('/profile')}
-          >
-            <div className="h-8 w-8 rounded-full bg-brand-blue/30 border border-brand-blue/20 flex items-center justify-center text-xs font-bold text-brand-blue">
-              {user.first_name?.[0]}{user.last_name?.[0]}
-            </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user.first_name} {user.last_name}</p>
-              <p className="text-xs text-slate-500 truncate">{user.email}</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Main nav */}
       <nav className="px-3 py-4 space-y-1">
