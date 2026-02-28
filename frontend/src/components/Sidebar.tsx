@@ -65,8 +65,10 @@ export function Sidebar() {
             className="flex items-center gap-3 px-2 py-2 rounded-xl bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
             onClick={() => navigate('/profile')}
           >
-            <div className="h-8 w-8 rounded-full bg-brand-blue/30 border border-brand-blue/20 flex items-center justify-center text-xs font-bold text-brand-blue">
-              {user.first_name?.[0]}{user.last_name?.[0]}
+            <div className="h-8 w-8 rounded-full bg-brand-blue/30 border border-brand-blue/20 flex items-center justify-center text-xs font-bold text-brand-blue flex-shrink-0 overflow-hidden">
+              {user.avatar_url
+                ? <img src={user.avatar_url} alt={`${user.first_name} ${user.last_name}`} className="h-full w-full object-cover" />
+                : <>{user.first_name?.[0]}{user.last_name?.[0]}</>}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-white truncate">{user.first_name} {user.last_name}</p>

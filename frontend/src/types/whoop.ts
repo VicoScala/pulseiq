@@ -7,6 +7,7 @@ export interface User {
   height_meter: number;
   weight_kg: number;
   max_heart_rate: number;
+  avatar_url?: string;
 }
 
 export interface Recovery {
