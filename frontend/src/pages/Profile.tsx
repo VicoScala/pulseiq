@@ -1,6 +1,8 @@
 import { useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Camera } from 'lucide-react';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { useMyProfile, useProfile, useFollow, useUnfollow, useNudge, useUpdateAvatar } from '../hooks/useSocial';
 import { PostCard } from '../components/social/PostCard';
 import { Spinner } from '../components/ui/Spinner';
@@ -8,7 +10,6 @@ import { useAuth } from '../hooks/useAuth';
 import type { FeedPost, Streak, Badge } from '../types/whoop';
 import clsx from 'clsx';
 
-const STREAK_ICON: Record<string, string> = { recovery: '💚', sleep: '🌙' };
 const BADGE_ICON: Record<string, string> = {
   first_workout:    '🏋️',
   streak_5_recovery: '🔥',
@@ -111,12 +112,12 @@ export function ProfilePage() {
               <h1 className="text-lg font-bold text-white">
                 {user.first_name} {user.last_name}
               </h1>
-              {user.bio && <p className="text-sm text-slate-400 mt-0.5">{user.bio}</p>}
-              {user.last_active && (
-                <p className="text-xs text-slate-600 mt-1">
-                  Actif·ve récemment
+              {user.created_at && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Membre depuis {format(new Date(user.created_at), 'MMMM yyyy', { locale: fr })} sur Whoop Mate
                 </p>
               )}
+              {user.bio && <p className="text-sm text-slate-400 mt-1">{user.bio}</p>}
             </div>
           </div>
 
@@ -156,25 +157,32 @@ export function ProfilePage() {
         </div>
 
         {/* Streaks */}
-        {streaks.length > 0 && (
-          <div className="pt-2 border-t border-white/5">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Streaks</p>
+        <div className="pt-2 border-t border-white/5">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Série de jours</p>
+          {(streaks as Streak[]).filter(s => s.current_count > 0).length === 0 ? (
+            <p className="text-xs text-slate-600">Aucune série active · commence aujourd'hui !</p>
+          ) : (
             <div className="flex flex-wrap gap-2">
-              {(streaks as Streak[]).map(s => (
+              {(streaks as Streak[]).filter(s => s.current_count > 0).map(s => (
                 <div
                   key={s.type}
-                  className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5"
+                  className="flex items-center gap-3 bg-orange-500/10 border border-orange-500/20 rounded-2xl px-4 py-2.5"
                 >
-                  <span className="text-base">{STREAK_ICON[s.type] ?? '🏅'}</span>
+                  <span className="text-2xl">🔥</span>
                   <div>
-                    <p className="text-xs text-slate-400">{s.type === 'recovery' ? 'Recovery' : 'Sommeil'}</p>
-                    <p className="text-sm font-bold text-white">{s.current_count}j <span className="text-xs text-slate-500">/ max {s.best_count}j</span></p>
+                    <p className="text-xl font-black text-white leading-none">
+                      {s.current_count}{' '}
+                      <span className="text-sm font-medium text-slate-400">jours</span>
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      {s.type === 'recovery' ? 'Recovery' : 'Sommeil'} · record {s.best_count}j
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Badges */}
         {badges.length > 0 && (

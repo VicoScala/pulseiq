@@ -30,11 +30,12 @@ router.get('/profile/me', (req: AuthRequest, res: Response) => {
   const user    = getUserPublic(userId) as any;
   const streaks = getStreaks(userId);
   const badges  = getBadges(userId);
+  const posts   = getUserPosts(userId, userId, undefined, 20);
   const db      = getDb();
   const followers  = (db.prepare('SELECT COUNT(*) as n FROM friendships WHERE following_id=?').get(userId) as any).n;
   const following  = (db.prepare('SELECT COUNT(*) as n FROM friendships WHERE follower_id=?').get(userId) as any).n;
   const postCount  = (db.prepare('SELECT COUNT(*) as n FROM feed_posts WHERE user_id=?').get(userId) as any).n;
-  res.json({ user, streaks, badges, followers, following, postCount });
+  res.json({ user, streaks, badges, followers, following, postCount, posts });
 });
 
 router.get('/profile/:userId', (req: AuthRequest, res: Response) => {

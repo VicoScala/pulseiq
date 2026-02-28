@@ -73,13 +73,14 @@ export const REACTION_EMOJI: Record<ReactionType, string> = {
 
 export interface PublicUser {
   id: number;
-  whoop_user_id: number;
+  whoop_user_id?: number;
   first_name: string;
   last_name: string;
-  email: string;
+  email?: string;
   bio?: string;
   avatar_url?: string;
   last_active?: string;
+  created_at?: string;
 }
 
 export interface FeedPost {

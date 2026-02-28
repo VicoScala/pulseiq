@@ -866,7 +866,10 @@ export function upsertStreak(userId: number, streakType: string, lastDate: strin
 }
 
 export function getStreaks(userId: number): any[] {
-  return getDb().prepare('SELECT * FROM user_streaks WHERE user_id=?').all(userId) as any[];
+  return getDb().prepare(`
+    SELECT streak_type AS type, current_count, best_count, last_activity_date AS last_date
+    FROM user_streaks WHERE user_id=?
+  `).all(userId) as any[];
 }
 
 // ── Social: Badges ─────────────────────────────────────────────────────────
