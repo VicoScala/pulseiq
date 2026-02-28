@@ -39,9 +39,9 @@ app.use(express.json());
 app.use(cookieParser());
 
 // ── Static frontend (production only) ─────────────────────────────────────
-// __dirname = backend/dist/ → ../../frontend/dist = frontend/dist/
+// Docker: __dirname=/app/dist → ../public = /app/public (copied from frontend/dist)
 if (isProd) {
-  const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+  const frontendDist = path.resolve(__dirname, '../public');
   app.use(express.static(frontendDist));
 }
 
@@ -56,7 +56,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOS
 // Any route not matched by the API (e.g. /dashboard, /feed) returns index.html
 if (isProd) {
   app.get('*', (_req, res) => {
-    res.sendFile(path.resolve(__dirname, '../../frontend/dist/index.html'));
+    res.sendFile(path.resolve(__dirname, '../public/index.html'));
   });
 }
 
