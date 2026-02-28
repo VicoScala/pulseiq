@@ -17,7 +17,6 @@ export const useUpdateAvatar = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['social', 'profile', 'me'] });
       qc.invalidateQueries({ queryKey: ['social', 'feed'] });
-      qc.invalidateQueries({ queryKey: ['me'] }); // refresh sidebar avatar
     },
   });
 };
