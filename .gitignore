@@ -7,3 +7,6 @@
 # Claude Code local config (machine-specific paths)
 .claude/
 
+# Local data / SQLite (persisted on Railway volume, not in git)
+data/
+
