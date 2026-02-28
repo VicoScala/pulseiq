@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-// Dev: baseURL='/' → Vite proxy reroute to localhost:3001
-// Prod: baseURL=VITE_API_URL → Railway backend URL
+// baseURL='/' works everywhere:
+// - Dev: Vite proxy reroutes /api, /auth, /social → localhost:3001
+// - Prod: Express serves frontend + handles API on the same origin
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/',
+  baseURL: '/',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });

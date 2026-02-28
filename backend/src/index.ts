@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 import cron from 'node-cron';
 import { config } from './config';
 import { getDb, cleanExpiredSessions } from './db/database';
@@ -16,14 +17,19 @@ import { createWss } from './services/ws';
 
 const app    = express();
 const server = createServer(app);
+const isProd = process.env.NODE_ENV === 'production';
 
 // ── Middleware ─────────────────────────────────────────────────────────────
-app.use(cors({
-  origin: config.frontendUrl,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// CORS only needed in dev (dev frontend on :5173 ≠ backend on :3001)
+// In prod, frontend is served by the same Express server → same origin → no CORS
+if (!isProd) {
+  app.use(cors({
+    origin: config.frontendUrl,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }));
+}
 
 // ⚠️  Webhook route must be mounted BEFORE express.json() so that
 //     req.body is the raw Buffer needed for HMAC signature verification.
@@ -32,12 +38,27 @@ app.use('/webhooks', express.raw({ type: 'application/json' }), webhookRouter);
 app.use(express.json());
 app.use(cookieParser());
 
-// ── Routes ─────────────────────────────────────────────────────────────────
+// ── Static frontend (production only) ─────────────────────────────────────
+// __dirname = backend/dist/ → ../../frontend/dist = frontend/dist/
+if (isProd) {
+  const frontendDist = path.resolve(__dirname, '../../frontend/dist');
+  app.use(express.static(frontendDist));
+}
+
+// ── API Routes ─────────────────────────────────────────────────────────────
 app.use('/auth',   authRouter);
 app.use('/api',    apiRouter);
 app.use('/social', socialRouter);
 
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
+
+// ── SPA fallback (must be LAST — after all API routes) ─────────────────────
+// Any route not matched by the API (e.g. /dashboard, /feed) returns index.html
+if (isProd) {
+  app.get('*', (_req, res) => {
+    res.sendFile(path.resolve(__dirname, '../../frontend/dist/index.html'));
+  });
+}
 
 // ── WebSocket ──────────────────────────────────────────────────────────────
 createWss(server);
