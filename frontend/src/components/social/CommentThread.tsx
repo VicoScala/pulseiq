@@ -91,8 +91,9 @@ export function CommentThread({ postId, myUserId, onClose }: Props) {
   const [replyTo, setReplyTo] = useState<number | undefined>(undefined);
 
   // @mention state
-  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  const [mentionStart, setMentionStart] = useState(0);
+  const [mentionQuery, setMentionQuery]       = useState<string | null>(null);
+  const [mentionStart, setMentionStart]       = useState(0);
+  const [selectedMentionIdx, setSelectedMentionIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Fetch suggestions when mention query active (≥1 char)
@@ -107,10 +108,12 @@ export function CommentThread({ postId, myUserId, onClose }: Props) {
     const before = val.slice(0, cursor);
     const match  = before.match(/@([A-Za-zÀ-ÿ]*)$/);
     if (match) {
+      if (match[1] !== mentionQuery) setSelectedMentionIdx(0); // reset on query change
       setMentionQuery(match[1]);
       setMentionStart(cursor - match[0].length);
     } else {
       setMentionQuery(null);
+      setSelectedMentionIdx(0);
     }
   };
 
@@ -121,6 +124,7 @@ export function CommentThread({ postId, myUserId, onClose }: Props) {
     const newText = `${before}@${firstName} ${lastName} ${after}`;
     setText(newText);
     setMentionQuery(null);
+    setSelectedMentionIdx(0);
     setTimeout(() => {
       if (inputRef.current) {
         const pos = (before + `@${firstName} ${lastName} `).length;
@@ -128,6 +132,32 @@ export function CommentThread({ postId, myUserId, onClose }: Props) {
         inputRef.current.setSelectionRange(pos, pos);
       }
     }, 0);
+  };
+
+  // Keyboard navigation inside the mention dropdown
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!suggestions.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedMentionIdx(i => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedMentionIdx(i => Math.max(i - 1, 0));
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const u = suggestions[selectedMentionIdx];
+      if (u) insertMention(u.first_name, u.last_name);
+    } else if (e.key === 'Enter') {
+      const u = suggestions[selectedMentionIdx];
+      if (u) {
+        e.preventDefault(); // prevent form submit while dropdown is open
+        insertMention(u.first_name, u.last_name);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setMentionQuery(null);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -192,22 +222,48 @@ export function CommentThread({ postId, myUserId, onClose }: Props) {
         {/* Mention suggestions dropdown — appears above input */}
         {mentionQuery !== null && suggestions.length > 0 && (
           <div className="absolute bottom-full left-0 right-0 mb-1 bg-surface-2 border border-white/10 rounded-xl overflow-hidden shadow-xl z-20">
-            {suggestions.map((u: any) => (
-              <button
-                key={u.id}
-                // onMouseDown + preventDefault so input doesn't lose focus before click fires
-                onMouseDown={e => { e.preventDefault(); insertMention(u.first_name, u.last_name); }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-white/10 transition-colors text-left"
-              >
-                <div className="h-6 w-6 rounded-full bg-brand-blue/30 border border-brand-blue/20 flex items-center justify-center text-[10px] font-bold text-brand-blue flex-shrink-0 overflow-hidden">
-                  {u.avatar_url
-                    ? <img src={u.avatar_url} alt="" className="h-full w-full object-cover" />
-                    : `${u.first_name?.[0] ?? ''}${u.last_name?.[0] ?? ''}`.toUpperCase()}
-                </div>
-                <span className="text-sm text-white">{u.first_name} {u.last_name}</span>
-                {u.username && <span className="text-xs text-slate-500 ml-auto">@{u.username}</span>}
-              </button>
-            ))}
+            {suggestions.map((u: any, idx: number) => {
+              const isSelected = idx === selectedMentionIdx;
+              const initials = `${u.first_name?.[0] ?? ''}${u.last_name?.[0] ?? ''}`.toUpperCase();
+              return (
+                <button
+                  key={u.id}
+                  onMouseDown={e => { e.preventDefault(); insertMention(u.first_name, u.last_name); }}
+                  onMouseEnter={() => setSelectedMentionIdx(idx)}
+                  className={clsx(
+                    'w-full flex items-center gap-2.5 px-3 py-2 transition-colors text-left border-l-2',
+                    isSelected
+                      ? 'bg-brand-green/10 border-brand-green'
+                      : 'border-transparent hover:bg-white/5',
+                  )}
+                >
+                  {/* Avatar */}
+                  <div className="h-7 w-7 rounded-full bg-brand-blue/30 border border-brand-blue/20 flex items-center justify-center text-[10px] font-bold text-brand-blue flex-shrink-0 overflow-hidden">
+                    {u.avatar_url
+                      ? <img src={u.avatar_url} alt="" className="h-full w-full object-cover" />
+                      : initials}
+                  </div>
+
+                  {/* Name */}
+                  <span className={clsx('text-sm flex-1', isSelected ? 'text-white font-semibold' : 'text-slate-300')}>
+                    {u.first_name} {u.last_name}
+                  </span>
+
+                  {/* Hint: username or keyboard hint */}
+                  {isSelected ? (
+                    <span className="text-[10px] text-brand-green font-medium flex-shrink-0">↵ Entrée</span>
+                  ) : u.username ? (
+                    <span className="text-xs text-slate-600 flex-shrink-0">@{u.username}</span>
+                  ) : null}
+                </button>
+              );
+            })}
+            {/* Keyboard hint footer */}
+            <div className="px-3 py-1.5 border-t border-white/5 flex items-center gap-3 text-[10px] text-slate-600">
+              <span>↑↓ naviguer</span>
+              <span>Tab / ↵ sélectionner</span>
+              <span>Échap fermer</span>
+            </div>
           </div>
         )}
 
@@ -217,6 +273,7 @@ export function CommentThread({ postId, myUserId, onClose }: Props) {
             type="text"
             value={text}
             onChange={handleChange}
+            onKeyDown={handleKeyDown}
             onBlur={() => setTimeout(() => setMentionQuery(null), 150)}
             placeholder="Ajouter un commentaire… (@prénom pour taguer)"
             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-green/40"
