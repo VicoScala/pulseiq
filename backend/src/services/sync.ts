@@ -30,14 +30,14 @@ export async function backfillPosts(userId: number): Promise<void> {
       .map((r: any) => r.whoop_ref_id)
   );
 
-  // Backfill recent workouts (last 90 days)
+  // Backfill most recent workouts only (3) — avoids flooding the feed on signup
   const cutoff = daysAgo(90);
   const workouts = db.prepare(`
     SELECT id, sport_name, strain, start_time, distance_meter
     FROM workouts
     WHERE user_id=? AND start_time > ? AND strain IS NOT NULL AND score_state='SCORED'
     ORDER BY start_time DESC
-    LIMIT 30
+    LIMIT 3
   `).all(userId, cutoff) as any[];
 
   for (const w of workouts) {
@@ -49,7 +49,7 @@ export async function backfillPosts(userId: number): Promise<void> {
     }).catch(() => {});
   }
 
-  // Backfill recent sleeps (last 30 days)
+  // Backfill most recent sleeps only (3) — avoids flooding the feed on signup
   const sleeps = db.prepare(`
     SELECT s.id, s.cycle_id, s.end_time,
            r.recovery_score, r.hrv_rmssd_milli
@@ -58,7 +58,7 @@ export async function backfillPosts(userId: number): Promise<void> {
     WHERE s.user_id=? AND s.nap=0 AND s.start_time > ?
       AND r.recovery_score IS NOT NULL
     ORDER BY s.start_time DESC
-    LIMIT 30
+    LIMIT 3
   `).all(userId, cutoff) as any[];
 
   for (const s of sleeps) {
@@ -126,9 +126,10 @@ export async function syncUser(userId: number, fullSync = false): Promise<void> 
   if (sleeps.status === 'fulfilled') {
     upsertSleeps(userId, sleeps.value);
     console.log(`[sync] Upserted ${sleeps.value.length} sleeps`);
-    // Generate posts for ALL non-nap sleeps in this sync window
-    for (const s of sleeps.value) {
-      if (s.nap) continue;
+    // On initial full sync limit to 3 most recent — avoids flooding the feed
+    const nonNapSleeps = sleeps.value.filter((s: any) => !s.nap);
+    const sleepsForPosts = fullSync ? nonNapSleeps.slice(0, 3) : nonNapSleeps;
+    for (const s of sleepsForPosts) {
       const rec = recoveryMap.get(s.cycle_id) ?? null;
       generateSleepPost(userId, { id: s.id, end_time: s.end }, rec).catch(() => {});
     }
@@ -138,15 +139,15 @@ export async function syncUser(userId: number, fullSync = false): Promise<void> 
   if (workouts.status === 'fulfilled') {
     upsertWorkouts(userId, workouts.value);
     console.log(`[sync] Upserted ${workouts.value.length} workouts`);
-    // Generate posts for ALL workouts in this sync window
-    for (const w of workouts.value) {
-      if (w.score?.strain) {
-        generateWorkoutPost(userId, {
-          id: w.id, sport_name: w.sport_name ?? 'activity',
-          strain: w.score.strain, start_time: w.start,
-          distance_meter: w.score?.distance_meter,
-        }).catch(() => {});
-      }
+    // On initial full sync limit to 3 most recent — avoids flooding the feed
+    const scoredWorkouts = workouts.value.filter((w: any) => w.score?.strain);
+    const workoutsForPosts = fullSync ? scoredWorkouts.slice(0, 3) : scoredWorkouts;
+    for (const w of workoutsForPosts) {
+      generateWorkoutPost(userId, {
+        id: w.id, sport_name: w.sport_name ?? 'activity',
+        strain: w.score.strain, start_time: w.start,
+        distance_meter: w.score?.distance_meter,
+      }).catch(() => {});
     }
   }
 
