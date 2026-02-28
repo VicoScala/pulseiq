@@ -315,5 +315,15 @@ export function notifyUser(
   targetId: number, type: string, fromUserId: number, referenceId?: string, payload?: object,
 ): void {
   createNotification({ userId: targetId, type, fromUserId, referenceId, payload });
-  pushToUser(targetId, { type: 'notification', data: { type, fromUserId, referenceId } });
+  const actor = getUserById(fromUserId) as any;
+  pushToUser(targetId, {
+    type: 'notification',
+    data: {
+      type,
+      fromUserId,
+      fromFirstName: actor?.first_name ?? null,
+      fromLastName:  actor?.last_name  ?? null,
+      referenceId,
+    },
+  });
 }

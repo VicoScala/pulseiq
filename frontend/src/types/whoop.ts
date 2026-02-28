@@ -183,7 +183,14 @@ export interface MorningStats {
 }
 
 export interface WsMessage {
-  type: 'new_post' | 'new_notif' | 'nudge' | 'ping';
+  type: 'new_post' | 'notification' | 'nudge' | 'ping' | 'connected';
+  data?: {
+    type?: string;
+    fromUserId?: number;
+    fromFirstName?: string | null;
+    fromLastName?: string | null;
+    referenceId?: string;
+  };
   [key: string]: unknown;
 }
 

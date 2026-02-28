@@ -23,7 +23,7 @@ export function useWebSocket(onMessage?: Handler) {
         if (msg.type === 'new_post') {
           qc.current.invalidateQueries({ queryKey: ['social', 'feed'] });
         }
-        if (msg.type === 'new_notif') {
+        if (msg.type === 'notification') {
           qc.current.invalidateQueries({ queryKey: ['social', 'notifications'] });
         }
         cb.current?.(msg);

@@ -166,7 +166,7 @@ export function PostCard({ post, myUserId }: Props) {
       </div>
 
       {/* Comment thread */}
-      {showComments && <CommentThread postId={post.id} />}
+      {showComments && <CommentThread postId={post.id} myUserId={myUserId} />}
     </div>
   );
 }
