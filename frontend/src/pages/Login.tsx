@@ -23,10 +23,18 @@ export function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-green/20 border border-brand-green/30 mb-4">
-            <span className="text-3xl font-black text-brand-green">PQ</span>
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-[#111118] mb-4">
+            <svg viewBox="0 0 100 100" className="h-12 w-12">
+              <defs>
+                <linearGradient id="wm-login" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#FC4C02"/>
+                  <stop offset="100%" stopColor="#E8380A"/>
+                </linearGradient>
+              </defs>
+              <polyline points="12,78 29,24 46,54 63,24 80,78" stroke="url(#wm-login)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white">PulseIQ</h1>
+          <h1 className="text-3xl font-bold text-white">Whoop Mate</h1>
           <p className="text-slate-400 mt-1">Votre tableau de bord performance personnel</p>
         </div>
 
@@ -41,7 +49,7 @@ export function Login() {
         <div className="card">
           <h2 className="text-lg font-semibold text-white mb-1">Connectez votre WHOOP</h2>
           <p className="text-slate-400 text-sm mb-6">
-            Autorisez PulseIQ à accéder à vos données de santé et performance WHOOP.
+            Autorisez Whoop Mate à accéder à vos données de santé et performance WHOOP.
           </p>
 
           <div className="grid grid-cols-2 gap-3 mb-6">
@@ -70,7 +78,7 @@ export function Login() {
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-6">
-          PulseIQ n'utilise que vos données WHOOP en lecture seule.<br />
+          Whoop Mate n'utilise que vos données WHOOP en lecture seule.<br />
           Vos données restent privées et locales.
         </p>
       </div>

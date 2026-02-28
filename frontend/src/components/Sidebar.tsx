@@ -40,11 +40,19 @@ export function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/5">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-brand-green/20 border border-brand-green/30 flex items-center justify-center">
-            <span className="text-brand-green font-bold text-sm">PQ</span>
+          <div className="h-9 w-9 rounded-xl overflow-hidden flex items-center justify-center bg-[#111118]">
+            <svg viewBox="0 0 100 100" className="h-8 w-8">
+              <defs>
+                <linearGradient id="wm-g" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#FC4C02"/>
+                  <stop offset="100%" stopColor="#E8380A"/>
+                </linearGradient>
+              </defs>
+              <polyline points="12,78 29,24 46,54 63,24 80,78" stroke="url(#wm-g)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            </svg>
           </div>
           <div>
-            <h1 className="text-sm font-bold text-white">PulseIQ</h1>
+            <h1 className="text-sm font-bold text-white">Whoop Mate</h1>
             <p className="text-xs text-slate-500">Performance Dashboard</p>
           </div>
         </div>
