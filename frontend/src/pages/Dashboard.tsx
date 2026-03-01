@@ -1,12 +1,13 @@
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Activity, Heart, Brain, Wind, Thermometer, Clock, Zap, TrendingUp } from 'lucide-react';
+import { Activity, Heart, Brain, Wind, Thermometer, Clock, Zap, TrendingUp, Link2 } from 'lucide-react';
 import { Gauge, MiniGauge } from '../components/ui/Gauge';
 import { MetricCard } from '../components/ui/MetricCard';
 import { Badge, recoveryColor, recoveryLabel } from '../components/ui/Badge';
 import { PageSpinner } from '../components/ui/Spinner';
 import { TrendChart } from '../components/charts/TrendChart';
 import { useDashboard, useRecovery } from '../hooks/useData';
+import { useAuth } from '../hooks/useAuth';
 import type { Recovery, Sleep } from '../types/whoop';
 
 function msToHours(ms: number | null | undefined): string {
@@ -48,10 +49,36 @@ function SleepBreakdown({ sleep }: { sleep: Sleep }) {
   );
 }
 
+function WhoopLinkCTA() {
+  return (
+    <div className="card flex flex-col items-center text-center py-12 px-6">
+      <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-green/10 mb-6">
+        <Link2 size={28} className="text-brand-green" />
+      </div>
+      <h2 className="text-xl font-bold text-white mb-2">Connectez votre WHOOP</h2>
+      <p className="text-slate-400 text-sm mb-6 max-w-sm">
+        Liez votre bracelet WHOOP pour synchroniser vos donnees de recovery, sommeil, strain et workouts.
+      </p>
+      <a
+        href="/auth/whoop"
+        className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-green text-black font-semibold text-sm hover:bg-green-400 transition-colors duration-150"
+      >
+        <svg width="20" height="20" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="20" fill="black" fillOpacity="0.15" />
+          <text x="20" y="25" textAnchor="middle" fontSize="14" fontWeight="bold" fill="black">W</text>
+        </svg>
+        Lier mon WHOOP
+      </a>
+    </div>
+  );
+}
+
 export function Dashboard() {
+  const { whoopLinked } = useAuth();
   const { data, isLoading } = useDashboard();
   const { data: recovery30d } = useRecovery('30d');
 
+  if (!whoopLinked) return <WhoopLinkCTA />;
   if (isLoading) return <PageSpinner />;
 
   const { today, trends, recentWorkouts } = data ?? {};

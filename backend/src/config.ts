@@ -19,6 +19,11 @@ export const config = {
     domain: process.env.NGROK_DOMAIN ?? null,     // optional static domain
   },
 
+  resend: {
+    apiKey: process.env.RESEND_API_KEY ?? '',
+    fromEmail: process.env.RESEND_FROM_EMAIL ?? 'noreply@whoopmate.com',
+  },
+
   whoop: {
     clientId: required('WHOOP_CLIENT_ID'),
     clientSecret: required('WHOOP_CLIENT_SECRET'),

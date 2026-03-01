@@ -9,10 +9,12 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+const AUTH_PAGES = ['/login', '/register', '/forgot-password', '/reset-password'];
+
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && !AUTH_PAGES.includes(window.location.pathname)) {
       window.location.href = '/login';
     }
     return Promise.reject(err);
@@ -30,6 +32,20 @@ export const fitiqApi = {
   getInsights: () => api.get('/api/insights').then(r => r.data),
   triggerSync: (full = false) => api.post(`/api/sync?full=${full}`).then(r => r.data),
   logout: () => api.post('/auth/logout').then(r => r.data),
+};
+
+// ── Auth API ──────────────────────────────────────────────────────────────
+export const authApi = {
+  register: (data: { email: string; password: string; first_name: string; last_name: string }) =>
+    api.post('/auth/register', data).then(r => r.data),
+  login: (data: { email: string; password: string }) =>
+    api.post('/auth/login', data).then(r => r.data),
+  forgotPassword: (email: string) =>
+    api.post('/auth/forgot-password', { email }).then(r => r.data),
+  resetPassword: (data: { token: string; password: string }) =>
+    api.post('/auth/reset-password', data).then(r => r.data),
+  resendVerification: () =>
+    api.post('/auth/resend-verification').then(r => r.data),
 };
 
 // ── Social API ─────────────────────────────────────────────────────────────

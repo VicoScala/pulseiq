@@ -1,4 +1,4 @@
-import { getDb, upsertCycles, upsertRecoveries, upsertSleeps, upsertWorkouts, upsertUser } from '../db/database';
+import { getDb, getToken, upsertCycles, upsertRecoveries, upsertSleeps, upsertWorkouts, upsertUser } from '../db/database';
 import {
   getWhoopClient,
   fetchUserProfile,
@@ -73,6 +73,11 @@ export async function backfillPosts(userId: number): Promise<void> {
 }
 
 export async function syncUser(userId: number, fullSync = false): Promise<void> {
+  const tokenRow = getToken(userId);
+  if (!tokenRow) {
+    console.log(`[sync] Skipping user ${userId} — no Whoop tokens`);
+    return;
+  }
   console.log(`[sync] Starting sync for user ${userId} (full=${fullSync})`);
   const client = await getWhoopClient(userId);
 
@@ -220,7 +225,10 @@ export async function syncSingleRecovery(userId: number, sleepId: string): Promi
 
 export async function syncAllUsers(): Promise<void> {
   const db = getDb();
-  const users = db.prepare('SELECT id FROM users').all() as { id: number }[];
+  // Only sync users who have Whoop linked (have tokens)
+  const users = db.prepare(
+    'SELECT u.id FROM users u JOIN tokens t ON t.user_id = u.id'
+  ).all() as { id: number }[];
   for (const { id } of users) {
     try {
       await syncUser(id, false);

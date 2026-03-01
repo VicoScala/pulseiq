@@ -323,6 +323,84 @@ const MIGRATIONS: Migration[] = [
       console.log('[db] Migration 5: avatar_url column added to users');
     },
   },
+  {
+    // Email/password auth layer — Whoop becomes a linked service instead of identity provider
+    version: 6,
+    run(db) {
+      const cols = (t: string) =>
+        (db.prepare(`PRAGMA table_info(${t})`).all() as { name: string }[]).map(c => c.name);
+      const addCol = (t: string, col: string, def: string) => {
+        if (!cols(t).includes(col)) db.exec(`ALTER TABLE ${t} ADD COLUMN ${col} ${def}`);
+      };
+
+      // Add auth columns first (before table rebuild so INSERT INTO...SELECT works)
+      addCol('users', 'password_hash',  'TEXT');
+      addCol('users', 'email_verified', 'INTEGER DEFAULT 0');
+      addCol('users', 'auth_provider',  "TEXT DEFAULT 'whoop'");
+
+      // Rebuild users table to make whoop_user_id nullable
+      // (SQLite cannot ALTER COLUMN to remove NOT NULL)
+      db.exec(`
+        CREATE TABLE users_new (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          whoop_user_id  INTEGER UNIQUE,
+          email          TEXT,
+          first_name     TEXT,
+          last_name      TEXT,
+          height_meter   REAL,
+          weight_kg      REAL,
+          max_heart_rate INTEGER,
+          username       TEXT,
+          bio            TEXT,
+          last_active    DATETIME,
+          avatar_url     TEXT,
+          password_hash  TEXT,
+          email_verified INTEGER DEFAULT 0,
+          auth_provider  TEXT DEFAULT 'whoop',
+          created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        INSERT INTO users_new
+          SELECT id, whoop_user_id, email, first_name, last_name,
+                 height_meter, weight_kg, max_heart_rate,
+                 username, bio, last_active, avatar_url,
+                 password_hash, email_verified, auth_provider,
+                 created_at, updated_at
+          FROM users;
+
+        DROP TABLE users;
+        ALTER TABLE users_new RENAME TO users;
+
+        -- Recreate indexes
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)
+          WHERE username IS NOT NULL;
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_auth ON users(email)
+          WHERE email IS NOT NULL AND auth_provider = 'email';
+      `);
+
+      // Email verification / password reset tokens
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS email_tokens (
+          id         TEXT PRIMARY KEY,
+          user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token_type TEXT NOT NULL,
+          expires_at DATETIME NOT NULL,
+          used       INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_email_tokens_user ON email_tokens(user_id, token_type);
+      `);
+
+      // Mark all existing Whoop users as verified
+      db.exec(`
+        UPDATE users SET auth_provider = 'whoop', email_verified = 1
+        WHERE whoop_user_id IS NOT NULL;
+      `);
+
+      console.log('[db] Migration 6: email/password auth layer + nullable whoop_user_id');
+    },
+  },
 ];
 
 function migrate(db: Database.Database): void {
@@ -404,6 +482,79 @@ export function deleteSession(sessionId: string): void {
 
 export function cleanExpiredSessions(): void {
   getDb().prepare("DELETE FROM sessions WHERE expires_at < datetime('now')").run();
+}
+
+// ── Email Auth ────────────────────────────────────────────────────────────
+export function createEmailUser(data: {
+  email: string;
+  password_hash: string;
+  first_name: string;
+  last_name: string;
+}): number {
+  const db = getDb();
+  const existing = db.prepare(
+    "SELECT id FROM users WHERE email = ? AND auth_provider = 'email'"
+  ).get(data.email) as { id: number } | undefined;
+  if (existing) throw new Error('EMAIL_EXISTS');
+
+  const result = db.prepare(`
+    INSERT INTO users (email, password_hash, first_name, last_name, auth_provider, email_verified)
+    VALUES (?, ?, ?, ?, 'email', 0)
+  `).run(data.email, data.password_hash, data.first_name, data.last_name);
+  return result.lastInsertRowid as number;
+}
+
+export function getUserByEmail(email: string): any | undefined {
+  return getDb().prepare(
+    "SELECT * FROM users WHERE email = ? AND auth_provider = 'email'"
+  ).get(email);
+}
+
+export function setEmailVerified(userId: number): void {
+  getDb().prepare('UPDATE users SET email_verified = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(userId);
+}
+
+export function updatePasswordHash(userId: number, hash: string): void {
+  getDb().prepare(
+    'UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+  ).run(hash, userId);
+}
+
+// ── Email Tokens ──────────────────────────────────────────────────────────
+export function createEmailToken(data: {
+  id: string;
+  userId: number;
+  tokenType: 'verify_email' | 'reset_password';
+  expiresAt: Date;
+}): void {
+  getDb().prepare(
+    'INSERT INTO email_tokens (id, user_id, token_type, expires_at) VALUES (?, ?, ?, ?)'
+  ).run(data.id, data.userId, data.tokenType, data.expiresAt.toISOString());
+}
+
+export function getEmailToken(tokenId: string): {
+  id: string; user_id: number; token_type: string; expires_at: string; used: number;
+} | undefined {
+  return getDb().prepare('SELECT * FROM email_tokens WHERE id = ?').get(tokenId) as any;
+}
+
+export function markEmailTokenUsed(tokenId: string): void {
+  getDb().prepare('UPDATE email_tokens SET used = 1 WHERE id = ?').run(tokenId);
+}
+
+export function cleanExpiredEmailTokens(): void {
+  getDb().prepare("DELETE FROM email_tokens WHERE expires_at < datetime('now')").run();
+}
+
+// ── Whoop Linking ─────────────────────────────────────────────────────────
+export function linkWhoopToUser(userId: number, whoopUserId: number): { ok: boolean; error?: string } {
+  const db = getDb();
+  const existing = db.prepare('SELECT id FROM users WHERE whoop_user_id = ?').get(whoopUserId) as { id: number } | undefined;
+  if (existing && existing.id !== userId) {
+    return { ok: false, error: 'whoop_already_linked' };
+  }
+  db.prepare('UPDATE users SET whoop_user_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(whoopUserId, userId);
+  return { ok: true };
 }
 
 // ── Cycles ────────────────────────────────────────────────────────────────

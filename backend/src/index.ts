@@ -6,7 +6,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import cron from 'node-cron';
 import { config } from './config';
-import { getDb, cleanExpiredSessions } from './db/database';
+import { getDb, cleanExpiredSessions, cleanExpiredEmailTokens } from './db/database';
 import authRouter    from './routes/auth';
 import apiRouter     from './routes/api';
 import socialRouter  from './routes/social';
@@ -89,10 +89,11 @@ cron.schedule('0 20 * * *', () => {
   runNightlyStreakWarnings();
 });
 
-// Clean expired sessions daily at 3am
+// Clean expired sessions + email tokens daily at 3am
 cron.schedule('0 3 * * *', () => {
   cleanExpiredSessions();
-  console.log('[cron] Cleaned expired sessions');
+  cleanExpiredEmailTokens();
+  console.log('[cron] Cleaned expired sessions + email tokens');
 });
 
 // ── Start ──────────────────────────────────────────────────────────────────

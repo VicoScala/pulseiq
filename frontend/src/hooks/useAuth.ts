@@ -21,7 +21,14 @@ export function useAuth() {
     },
   });
 
-  return { user, isLoading, isAuthenticated: !!user && !isError, logout };
+  return {
+    user,
+    isLoading,
+    isAuthenticated: !!user && !isError,
+    emailVerified: !!user?.email_verified,
+    whoopLinked: !!user?.whoop_linked,
+    logout,
+  };
 }
 
 export function useSync() {
