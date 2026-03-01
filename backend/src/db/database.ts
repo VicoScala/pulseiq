@@ -551,7 +551,8 @@ export function linkWhoopToUser(userId: number, whoopUserId: number): { ok: bool
   const db = getDb();
   const existing = db.prepare('SELECT id FROM users WHERE whoop_user_id = ?').get(whoopUserId) as { id: number } | undefined;
   if (existing && existing.id !== userId) {
-    return { ok: false, error: 'whoop_already_linked' };
+    // Auto-transfer: unlink Whoop from old account before linking to new one
+    db.prepare('UPDATE users SET whoop_user_id = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(existing.id);
   }
   db.prepare('UPDATE users SET whoop_user_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(whoopUserId, userId);
   return { ok: true };
