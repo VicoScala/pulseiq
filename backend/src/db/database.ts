@@ -504,9 +504,14 @@ export function createEmailUser(data: {
   return result.lastInsertRowid as number;
 }
 
-export function getUserByEmail(email: string): any | undefined {
+export function getUserByEmail(email: string, emailAuthOnly = true): any | undefined {
+  if (emailAuthOnly) {
+    return getDb().prepare(
+      "SELECT * FROM users WHERE email = ? AND auth_provider = 'email'"
+    ).get(email);
+  }
   return getDb().prepare(
-    "SELECT * FROM users WHERE email = ? AND auth_provider = 'email'"
+    "SELECT * FROM users WHERE email = ?"
   ).get(email);
 }
 

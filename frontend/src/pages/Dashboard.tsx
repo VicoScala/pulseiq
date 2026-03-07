@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Activity, Heart, Brain, Wind, Thermometer, Clock, Zap, TrendingUp, Link2 } from 'lucide-react';
@@ -49,7 +50,7 @@ function SleepBreakdown({ sleep }: { sleep: Sleep }) {
   );
 }
 
-function WhoopLinkCTA() {
+function WhoopLinkCTA({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div className="card flex flex-col items-center text-center py-12 px-6">
       <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-green/10 mb-6">
@@ -69,16 +70,23 @@ function WhoopLinkCTA() {
         </svg>
         Lier mon WHOOP
       </a>
+      <button
+        onClick={onDismiss}
+        className="mt-4 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+      >
+        Plus tard
+      </button>
     </div>
   );
 }
 
 export function Dashboard() {
   const { whoopLinked } = useAuth();
+  const [whoopDismissed, setWhoopDismissed] = useState(false);
   const { data, isLoading } = useDashboard();
   const { data: recovery30d } = useRecovery('30d');
 
-  if (!whoopLinked) return <WhoopLinkCTA />;
+  if (!whoopLinked && !whoopDismissed) return <WhoopLinkCTA onDismiss={() => setWhoopDismissed(true)} />;
   if (isLoading) return <PageSpinner />;
 
   const { today, trends, recentWorkouts } = data ?? {};

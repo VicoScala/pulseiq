@@ -95,7 +95,8 @@ router.post('/login', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'missing_fields' });
   }
 
-  const user = getUserByEmail(email);
+  // Search ALL accounts (including legacy Whoop) that have a password set
+  const user = getUserByEmail(email, false);
   if (!user || !user.password_hash) {
     return res.status(401).json({ error: 'invalid_credentials' });
   }
@@ -158,7 +159,8 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
   if (!email) return res.status(400).json({ error: 'missing_email' });
 
   // Always return success (don't leak whether email exists)
-  const user = getUserByEmail(email);
+  // Search ALL accounts (including legacy Whoop ones) so they can set a password
+  const user = getUserByEmail(email, false);
   if (user) {
     const tokenId = uuidv4();
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
