@@ -13,7 +13,7 @@ import {
 } from '../db/database';
 import { notifyUser } from '../services/social';
 import { pushToUser } from '../services/ws';
-import { sendNewFollowerEmail } from '../services/email';
+import { sendNewFollowerEmail, sendReactionEmail, sendCommentEmail, sendRepostEmail } from '../services/email';
 
 const router = Router();
 router.use(requireAuth);
@@ -112,9 +112,24 @@ router.get('/morning-stats', (req: AuthRequest, res: Response) => {
 
 // ── Posts ─────────────────────────────────────────────────────────────────
 
-router.post('/posts/:id/repost', (req: AuthRequest, res: Response) => {
-  const post = repostPost(req.userId!, parseInt(req.params.id));
+router.post('/posts/:id/repost', async (req: AuthRequest, res: Response) => {
+  const originalPostId = parseInt(req.params.id);
+  const originalPost = getDb().prepare('SELECT user_id, generated_message FROM feed_posts WHERE id=?').get(originalPostId) as any;
+  const post = repostPost(req.userId!, originalPostId);
   if (!post) { res.status(404).json({ error: 'post_not_found' }); return; }
+
+  // Send email to original post owner (non-blocking, skip own reposts)
+  if (originalPost && originalPost.user_id !== req.userId) {
+    const owner = getUserById(originalPost.user_id) as any;
+    const actor = getUserById(req.userId!) as any;
+    if (owner?.email && actor) {
+      const actorName = [actor.first_name, actor.last_name].filter(Boolean).join(' ');
+      sendRepostEmail(owner.email, actorName, (originalPost.generated_message ?? '').slice(0, 120), originalPostId, owner.first_name).catch(e =>
+        console.error('[social] Failed to send repost email:', e),
+      );
+    }
+  }
+
   res.json({ post });
 });
 
@@ -122,7 +137,7 @@ router.post('/posts/:id/repost', (req: AuthRequest, res: Response) => {
 
 const VALID_REACTIONS = ['like', 'fire', 'beast', 'rip', 'clap'];
 
-router.post('/posts/:id/react', (req: AuthRequest, res: Response) => {
+router.post('/posts/:id/react', async (req: AuthRequest, res: Response) => {
   const { reaction_type } = req.body;
   if (!VALID_REACTIONS.includes(reaction_type)) {
     res.status(400).json({ error: 'invalid_reaction' }); return;
@@ -131,9 +146,21 @@ router.post('/posts/:id/react', (req: AuthRequest, res: Response) => {
   upsertReaction(postId, req.userId!, reaction_type);
 
   // Notify post owner (always, even on own posts)
-  const post = getDb().prepare('SELECT user_id FROM feed_posts WHERE id=?').get(postId) as any;
+  const post = getDb().prepare('SELECT user_id, generated_message FROM feed_posts WHERE id=?').get(postId) as any;
   if (post) {
     notifyUser(post.user_id, 'new_reaction', req.userId!, String(postId), { reaction_type });
+
+    // Send email (non-blocking, skip if reacting to own post)
+    if (post.user_id !== req.userId) {
+      const owner = getUserById(post.user_id) as any;
+      const actor = getUserById(req.userId!) as any;
+      if (owner?.email && actor) {
+        const actorName = [actor.first_name, actor.last_name].filter(Boolean).join(' ');
+        sendReactionEmail(owner.email, actorName, reaction_type, (post.generated_message ?? '').slice(0, 120), postId, owner.first_name).catch(e =>
+          console.error('[social] Failed to send reaction email:', e),
+        );
+      }
+    }
   }
 
   res.json(getReactionSummary(postId, req.userId!));
@@ -154,7 +181,7 @@ router.get('/posts/:id/comments', (req: AuthRequest, res: Response) => {
   res.json(getComments(parseInt(req.params.id)));
 });
 
-router.post('/posts/:id/comment', (req: AuthRequest, res: Response) => {
+router.post('/posts/:id/comment', async (req: AuthRequest, res: Response) => {
   const { content, parent_comment_id } = req.body;
   if (!content?.trim()) { res.status(400).json({ error: 'empty_comment' }); return; }
   const postId  = parseInt(req.params.id);
@@ -164,6 +191,18 @@ router.post('/posts/:id/comment', (req: AuthRequest, res: Response) => {
   const post = getDb().prepare('SELECT user_id FROM feed_posts WHERE id=?').get(postId) as any;
   if (post) {
     notifyUser(post.user_id, 'new_comment', req.userId!, String(postId));
+
+    // Send email (non-blocking, skip if commenting on own post)
+    if (post.user_id !== req.userId) {
+      const owner = getUserById(post.user_id) as any;
+      const actor = getUserById(req.userId!) as any;
+      if (owner?.email && actor) {
+        const actorName = [actor.first_name, actor.last_name].filter(Boolean).join(' ');
+        sendCommentEmail(owner.email, actorName, content.trim().slice(0, 150), postId, owner.first_name).catch(e =>
+          console.error('[social] Failed to send comment email:', e),
+        );
+      }
+    }
   }
 
   // Notify @mentioned users

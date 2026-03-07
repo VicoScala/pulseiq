@@ -77,6 +77,87 @@ export async function sendPasswordResetEmail(to: string, token: string, firstNam
   });
 }
 
+// ── Reaction Notification ───────────────────────────────────────────────────
+
+const REACTION_EMOJI: Record<string, string> = {
+  like: '👍', fire: '🔥', beast: '💪', rip: '💀', clap: '👏',
+};
+
+export async function sendReactionEmail(
+  to: string,
+  actorName: string,
+  reactionType: string,
+  postSnippet: string,
+  postId: number,
+  targetFirstName: string,
+): Promise<void> {
+  const postUrl = `${config.frontendUrl}/feed#post-${postId}`;
+  const emoji = REACTION_EMOJI[reactionType] ?? '👍';
+  await getResend().emails.send({
+    from: config.resend.fromEmail,
+    to,
+    subject: `${actorName} a réagi ${emoji} à ton post — Whoop Mate`,
+    html: emailWrapper(`
+      <h2 style="color:#fff;margin:0 0 8px;font-size:22px">Hey ${targetFirstName} !</h2>
+      <p style="margin:0 0 16px;color:#94a3b8"><strong style="color:#fff">${actorName}</strong> a réagi ${emoji} à ton post :</p>
+      <div style="margin:0 0 24px;padding:12px 16px;background:#1e1e2e;border-radius:8px;color:#cbd5e1;font-size:14px">${postSnippet}</div>
+      <div style="text-align:center;margin:0 0 24px">
+        ${button(postUrl, 'Voir le post')}
+      </div>
+    `),
+  });
+}
+
+// ── Comment Notification ────────────────────────────────────────────────────
+
+export async function sendCommentEmail(
+  to: string,
+  actorName: string,
+  commentSnippet: string,
+  postId: number,
+  targetFirstName: string,
+): Promise<void> {
+  const postUrl = `${config.frontendUrl}/feed#post-${postId}`;
+  await getResend().emails.send({
+    from: config.resend.fromEmail,
+    to,
+    subject: `${actorName} a commenté ton post — Whoop Mate`,
+    html: emailWrapper(`
+      <h2 style="color:#fff;margin:0 0 8px;font-size:22px">Hey ${targetFirstName} !</h2>
+      <p style="margin:0 0 16px;color:#94a3b8"><strong style="color:#fff">${actorName}</strong> a commenté ton post :</p>
+      <div style="margin:0 0 24px;padding:12px 16px;background:#1e1e2e;border-radius:8px;color:#cbd5e1;font-size:14px;font-style:italic">"${commentSnippet}"</div>
+      <div style="text-align:center;margin:0 0 24px">
+        ${button(postUrl, 'Voir le commentaire')}
+      </div>
+    `),
+  });
+}
+
+// ── Repost Notification ─────────────────────────────────────────────────────
+
+export async function sendRepostEmail(
+  to: string,
+  actorName: string,
+  postSnippet: string,
+  postId: number,
+  targetFirstName: string,
+): Promise<void> {
+  const postUrl = `${config.frontendUrl}/feed#post-${postId}`;
+  await getResend().emails.send({
+    from: config.resend.fromEmail,
+    to,
+    subject: `${actorName} a reposté ton activité — Whoop Mate`,
+    html: emailWrapper(`
+      <h2 style="color:#fff;margin:0 0 8px;font-size:22px">Hey ${targetFirstName} !</h2>
+      <p style="margin:0 0 16px;color:#94a3b8"><strong style="color:#fff">${actorName}</strong> a reposté ton activité :</p>
+      <div style="margin:0 0 24px;padding:12px 16px;background:#1e1e2e;border-radius:8px;color:#cbd5e1;font-size:14px">${postSnippet}</div>
+      <div style="text-align:center;margin:0 0 24px">
+        ${button(postUrl, 'Voir le repost')}
+      </div>
+    `),
+  });
+}
+
 // ── New Follower Notification ───────────────────────────────────────────────
 
 export async function sendNewFollowerEmail(
