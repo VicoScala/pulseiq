@@ -21,7 +21,7 @@ export const config = {
 
   resend: {
     apiKey: process.env.RESEND_API_KEY ?? '',
-    fromEmail: process.env.RESEND_FROM_EMAIL ?? 'noreply@whoopmate.com',
+    fromEmail: process.env.RESEND_FROM_EMAIL ?? 'Whoop Mate <onboarding@resend.dev>',
   },
 
   whoop: {
