@@ -10,7 +10,7 @@ import {
   createEmailToken, getEmailToken, markEmailTokenUsed, linkWhoopToUser,
 } from '../db/database';
 import { syncUser, backfillPosts } from '../services/sync';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email';
+import { sendWelcomeEmail, sendPasswordResetEmail } from '../services/email';
 import { requireAuth, AuthRequest } from '../middleware/session';
 
 const router = Router();
@@ -71,7 +71,7 @@ router.post('/register', async (req: Request, res: Response) => {
     createEmailToken({ id: tokenId, userId, tokenType: 'verify_email', expiresAt });
 
     try {
-      await sendVerificationEmail(email, tokenId, first_name);
+      await sendWelcomeEmail(email, tokenId, first_name);
     } catch (e) {
       console.error('[auth] Failed to send verification email:', e);
     }
@@ -143,7 +143,7 @@ router.post('/resend-verification', requireAuth, async (req: AuthRequest, res: R
   createEmailToken({ id: tokenId, userId: user.id, tokenType: 'verify_email', expiresAt });
 
   try {
-    await sendVerificationEmail(user.email, tokenId, user.first_name);
+    await sendWelcomeEmail(user.email, tokenId, user.first_name);
   } catch (e) {
     console.error('[auth] Failed to resend verification:', e);
     return res.status(500).json({ error: 'email_send_failed' });

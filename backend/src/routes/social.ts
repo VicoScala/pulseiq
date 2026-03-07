@@ -9,10 +9,11 @@ import {
   getLeaderboard, getStreaks, getBadges,
   searchUsers, getSuggestedUsers, getMorningStats,
   getUserPublic, updateProfile, touchLastActive,
-  getDb,
+  getUserById, getDb,
 } from '../db/database';
 import { notifyUser } from '../services/social';
 import { pushToUser } from '../services/ws';
+import { sendNewFollowerEmail } from '../services/email';
 
 const router = Router();
 router.use(requireAuth);
@@ -62,11 +63,22 @@ router.patch('/profile', (req: AuthRequest, res: Response) => {
 
 // ── Follow ────────────────────────────────────────────────────────────────
 
-router.post('/follow/:userId', (req: AuthRequest, res: Response) => {
+router.post('/follow/:userId', async (req: AuthRequest, res: Response) => {
   const targetId = parseInt(req.params.userId);
   if (targetId === req.userId) { res.status(400).json({ error: 'cant_follow_self' }); return; }
   follow(req.userId!, targetId);
   notifyUser(targetId, 'new_follower', req.userId!);
+
+  // Send email notification (non-blocking)
+  const target = getUserById(targetId) as any;
+  const follower = getUserById(req.userId!) as any;
+  if (target?.email && follower) {
+    const followerName = [follower.first_name, follower.last_name].filter(Boolean).join(' ');
+    sendNewFollowerEmail(target.email, followerName, req.userId!, target.first_name).catch(e =>
+      console.error('[social] Failed to send follower email:', e),
+    );
+  }
+
   res.json({ ok: true });
 });
 
